@@ -1,4 +1,5 @@
 import _ from "underscore";
+import { t } from "ttag";
 
 import { createAction } from "metabase/lib/redux";
 
@@ -85,22 +86,72 @@ export const addTextDashCardToDashboard = function ({ dashId }) {
   });
 };
 
-export const addActionDashCardToDashboard = ({ dashId }) => {
-  const virtualActionsCard = {
-    ...createCard(),
-    display: "action",
-    archived: false,
+const esitmateCardSize = (displayType, action) => {
+  if (displayType === "button") {
+    return { size_x: 2, size_y: 1 };
+  }
+
+  return {
+    size_x: 6,
+    size_y: Math.round(3 + action.parameters.length * 1.5),
   };
-  const dashcardOverrides = {
-    card: virtualActionsCard,
-    size_x: 2,
-    size_y: 1,
-    visualization_settings: {
-      virtual_card: virtualActionsCard,
-    },
-  };
-  return addDashCardToDashboard({
-    dashId: dashId,
-    dashcardOverrides: dashcardOverrides,
-  });
 };
+
+export const addActionToDashboard =
+  async ({ dashId, action, displayType }) =>
+  dispatch => {
+    const virtualActionsCard = {
+      ...createCard(),
+      display: "action",
+      archived: false,
+    };
+
+    const dashcardOverrides = {
+      action,
+      card_id: action.model_id,
+      card: virtualActionsCard,
+      ...esitmateCardSize(displayType, action),
+      visualization_settings: {
+        actionDisplayType: displayType ?? "button",
+        virtual_card: virtualActionsCard,
+        "button.label": action.name ?? action.id,
+        action_slug: action.slug,
+      },
+    };
+    dispatch(
+      addDashCardToDashboard({
+        dashId: dashId,
+        dashcardOverrides: dashcardOverrides,
+      }),
+    );
+  };
+
+export const addLinkToDashboard =
+  async ({ dashId, link }) =>
+  dispatch => {
+    const virtualActionsCard = {
+      ...createCard(),
+      display: "action",
+      archived: false,
+    };
+    const dashcardOverrides = {
+      card: virtualActionsCard,
+      size_x: 2,
+      size_y: 1,
+      visualization_settings: {
+        virtual_card: virtualActionsCard,
+        "button.label": link.name ?? t`Link`,
+        click_behavior: {
+          type: "link",
+          linkType: link.type ?? "page",
+          targetId: link.target,
+        },
+      },
+    };
+    dispatch(
+      addDashCardToDashboard({
+        dashId: dashId,
+        dashcardOverrides: dashcardOverrides,
+      }),
+    );
+  };

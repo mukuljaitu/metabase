@@ -6,7 +6,7 @@ import {
   DashboardParameterMapping,
 } from "./dashboard";
 import { WritebackAction } from "./writeback";
-import { FormType } from "./writeback-form-settings";
+import { ActionDisplayType } from "./writeback-form-settings";
 
 export type DataAppId = number;
 export type DataAppPage = Dashboard;
@@ -54,6 +54,6 @@ export interface ActionDashboardCard
     [key: string]: unknown;
     "button.label"?: string;
     click_behavior?: ClickBehavior;
-    actionDisplayType?: FormType;
+    actionDisplayType?: ActionDisplayType;
   };
 }

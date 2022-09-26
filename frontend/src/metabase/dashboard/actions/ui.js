@@ -1,5 +1,6 @@
 import { createAction } from "metabase/lib/redux";
 import { SIDEBAR_NAME } from "metabase/dashboard/constants";
+import { getSidebar } from "../selectors";
 
 export const SET_SIDEBAR = "metabase/dashboard/SET_SIDEBAR";
 export const setSidebar = createAction(SET_SIDEBAR);
@@ -20,10 +21,35 @@ export const showClickBehaviorSidebar = dashcardId => dispatch => {
   }
 };
 
+export const toggleSidebar = name => (dispatch, getState) => {
+  const currentSidebarName = getSidebar(getState()).name;
+  if (currentSidebarName === name) {
+    dispatch(closeSidebar());
+  } else {
+    dispatch(setSidebar({ name }));
+  }
+};
+
 export const openAddQuestionSidebar = () => dispatch => {
   dispatch(
     setSidebar({
       name: SIDEBAR_NAME.addQuestion,
+    }),
+  );
+};
+
+export const openAddActionButtonSidebar = () => dispatch => {
+  dispatch(
+    setSidebar({
+      name: SIDEBAR_NAME.addActionButton,
+    }),
+  );
+};
+
+export const openAddActionFormSidebar = () => dispatch => {
+  dispatch(
+    setSidebar({
+      name: SIDEBAR_NAME.addActionForm,
     }),
   );
 };

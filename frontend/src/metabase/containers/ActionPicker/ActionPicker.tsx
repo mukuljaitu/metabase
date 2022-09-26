@@ -15,7 +15,7 @@ export default function ActionPicker({
   value,
   onChange,
 }: {
-  value: WritebackAction | undefined;
+  value?: WritebackAction;
   onChange: (value: WritebackAction) => void;
 }) {
   const [modelId, setModelId] = useState<number | undefined>(value?.model_id);
