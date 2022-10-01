@@ -15,11 +15,31 @@ export const getColumnDescriptors = (
 ): ColumnDescriptor[] => {
   return columnNames.map(columnName => {
     const index = columns.findIndex(column => column.name === columnName);
+
     return {
       index,
       column: columns[index],
     };
   });
+};
+
+export const hasValidColumnsSelected = (
+  visualizationSettings: VisualizationSettings,
+  data: DatasetData,
+) => {
+  const metricColumns = (visualizationSettings["graph.metrics"] ?? [])
+    .map(metricColumnName =>
+      data.cols.find(column => column.name === metricColumnName),
+    )
+    .filter(Boolean);
+
+  const dimensionColumns = (visualizationSettings["graph.dimensions"] ?? [])
+    .map(dimensionColumnName =>
+      data.cols.find(column => column.name === dimensionColumnName),
+    )
+    .filter(Boolean);
+
+  return metricColumns.length > 0 && dimensionColumns.length > 0;
 };
 
 export type BreakoutChartColumns = {

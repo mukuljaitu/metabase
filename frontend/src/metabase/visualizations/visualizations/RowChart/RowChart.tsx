@@ -18,7 +18,10 @@ import {
   getSeries,
   trimData,
 } from "metabase/visualizations/components/RowChart/utils/data";
-import { getChartColumns } from "metabase/visualizations/lib/graph/columns";
+import {
+  getChartColumns,
+  hasValidColumnsSelected,
+} from "metabase/visualizations/lib/graph/columns";
 import { getFormatters } from "metabase/visualizations/visualizations/RowChart/utils/format";
 import { measureText } from "metabase/lib/measure-text";
 import ExplicitSize from "metabase/components/ExplicitSize";
@@ -30,6 +33,7 @@ import { useChartSeries } from "metabase/visualizations/components/RowChart/hook
 import { getChartGoal } from "metabase/visualizations/lib/settings/goal";
 import { getChartTheme } from "metabase/visualizations/components/RowChart/utils/theme";
 import { getStackingOffset } from "metabase/visualizations/lib/settings/stacking";
+import { getComputedSettingsForSeries } from "metabase/visualizations/lib/settings/visualization";
 import {
   RowVisualizationRoot,
   RowChartContainer,
@@ -60,7 +64,7 @@ interface RowChartVisualizationProps extends Record<string, any> {
   onVisualizationClick: $FIXME;
 }
 
-const RowChartVisualization = ({
+const RowChartVisualizationInner = ({
   card,
   className,
   width,
@@ -81,6 +85,7 @@ const RowChartVisualization = ({
   ...props
 }: RowChartVisualizationProps) => {
   const { chartColumns, series, seriesColors } = useChartSeries(data, settings);
+
   const groupedData = useMemo(
     () => getGroupedDataset(data, chartColumns),
     [chartColumns, data],
@@ -145,10 +150,11 @@ const RowChartVisualization = ({
         }
       : null;
 
-  const xLabel = settings["graph.x_axis.labels_enabled"]
+  // FIXME: settings axis are opposite
+  const xLabel = settings["graph.y_axis.labels_enabled"]
     ? settings["graph.x_axis.title_text"]
     : undefined;
-  const yLabel = settings["graph.y_axis.labels_enabled"]
+  const yLabel = settings["graph.x_axis.labels_enabled"]
     ? settings["graph.y_axis.title_text"]
     : undefined;
 
@@ -180,10 +186,21 @@ const RowChartVisualization = ({
           onHover={handleHover}
           xLabel={xLabel}
           yLabel={yLabel}
+          xScaleType={settings["graph.y_axis.scale"]}
         />
       </RowChartLegendLayout>
     </RowVisualizationRoot>
   );
+};
+
+const RowChartVisualization = (props: any) => {
+  const { settings, data } = props;
+
+  if (!hasValidColumnsSelected(settings, data)) {
+    return null;
+  }
+
+  return <RowChartVisualizationInner {...props} />;
 };
 
 RowChartVisualization.uiName = t`Row`;
@@ -252,13 +269,14 @@ RowChartVisualization.settings["graph.dimensions"] = {
  */
 RowChartVisualization.transformSeries = (originalMultipleSeries: any) => {
   const [series] = originalMultipleSeries;
+  const settings: any = getComputedSettingsForSeries(originalMultipleSeries);
+  const { card, data } = series;
 
-  if (series.card._transformed) {
+  if (series.card._transformed || !hasValidColumnsSelected(settings, data)) {
     return originalMultipleSeries;
   }
 
-  const { card, data } = series;
-  const chartColumns = getChartColumns(data, card.visualization_settings);
+  const chartColumns = getChartColumns(data, settings);
 
   return getSeries(data, chartColumns)
     .map(s => s.seriesKey)

@@ -7,7 +7,12 @@ import type { ScaleBand, ScaleLinear } from "d3-scale";
 import { TextMeasurer } from "metabase/visualizations/types/measure-text";
 import { ChartFont, Margin, Series } from "../types";
 import { LABEL_PADDING } from "../constants";
-import { createStackedXScale, createXScale, createYScale } from "./scale";
+import {
+  createStackedXScale,
+  createXScale,
+  createYScale,
+  XScaleType,
+} from "./scale";
 
 const CHART_PADDING = 10;
 const TICKS_OFFSET = 10;
@@ -127,6 +132,7 @@ type CalculatedStackedChartInput<TDatum> = {
   innerWidth: number;
   innerHeight: number;
   seriesColors: Record<string, string>;
+  xScaleType?: XScaleType;
 };
 
 export const calculateStackedBars = <TDatum>({
@@ -137,6 +143,7 @@ export const calculateStackedBars = <TDatum>({
   innerWidth,
   innerHeight,
   seriesColors,
+  xScaleType,
 }: CalculatedStackedChartInput<TDatum>) => {
   const seriesByKey = multipleSeries.reduce((acc, series) => {
     acc[series.seriesKey] = series;
@@ -153,10 +160,12 @@ export const calculateStackedBars = <TDatum>({
   const stackedSeries = d3Stack(data);
 
   const yScale = createYScale(data, multipleSeries, innerHeight);
-  const xScale = createStackedXScale(stackedSeries, additionalXValues, [
-    0,
-    innerWidth,
-  ]);
+  const xScale = createStackedXScale(
+    stackedSeries,
+    additionalXValues,
+    [0, innerWidth],
+    xScaleType,
+  );
 
   const bars = multipleSeries.map((series, seriesIndex) => {
     return data.map((_datum, datumIndex) => {
@@ -223,6 +232,7 @@ type CalculatedNonStackedChartInput<TDatum> = {
   innerWidth: number;
   innerHeight: number;
   seriesColors: Record<string, string>;
+  xScaleType?: XScaleType;
 };
 
 export const calculateNonStackedBars = <TDatum>({
@@ -232,12 +242,16 @@ export const calculateNonStackedBars = <TDatum>({
   innerWidth,
   innerHeight,
   seriesColors,
+  xScaleType,
 }: CalculatedNonStackedChartInput<TDatum>) => {
   const yScale = createYScale(data, multipleSeries, innerHeight);
-  const xScale = createXScale(data, multipleSeries, additionalXValues, [
-    0,
-    innerWidth,
-  ]);
+  const xScale = createXScale(
+    data,
+    multipleSeries,
+    additionalXValues,
+    [0, innerWidth],
+    xScaleType,
+  );
 
   const innerBarScale = scaleBand({
     domain: multipleSeries.map((_, index) => index),

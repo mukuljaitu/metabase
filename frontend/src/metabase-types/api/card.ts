@@ -49,7 +49,7 @@ export type VisualizationSettings = {
 
   // Y-axis
   "graph.y_axis.title_text"?: string;
-  "graph.y_axis.scale"?: "pow";
+  "graph.y_axis.scale"?: "linear" | "pow" | "log";
   "graph.y_axis.axis_enabled"?: true;
 
   // Goal

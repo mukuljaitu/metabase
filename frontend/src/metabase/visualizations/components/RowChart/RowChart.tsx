@@ -18,6 +18,7 @@ import {
   HoveredData,
   Series,
 } from "./types";
+import { getXTicksCount } from "./utils/ticks";
 
 const MIN_BAR_HEIGHT = 24;
 
@@ -43,6 +44,8 @@ export interface RowChartProps<TDatum> {
   measureText: TextMeasurer;
 
   hoveredData?: HoveredData | null;
+
+  xScaleType?: "linear" | "pow" | "log";
 
   onClick?: RowChartViewProps["onClick"];
   onHover?: RowChartViewProps["onHover"];
@@ -72,6 +75,7 @@ export const RowChart = <TDatum,>({
 
   onClick,
   onHover,
+  xScaleType,
 }: RowChartProps<TDatum>) => {
   const maxYValues = useMemo(
     () =>
@@ -133,6 +137,7 @@ export const RowChart = <TDatum,>({
             innerWidth,
             innerHeight,
             seriesColors,
+            xScaleType,
           })
         : calculateNonStackedBars<TDatum>({
             data: trimmedData,
@@ -141,6 +146,7 @@ export const RowChart = <TDatum,>({
             innerWidth,
             innerHeight,
             seriesColors,
+            xScaleType,
           }),
     [
       additionalXValues,
@@ -150,13 +156,11 @@ export const RowChart = <TDatum,>({
       seriesColors,
       stackingOffset,
       trimmedData,
+      xScaleType,
     ],
   );
 
-  const xTicksCount = Math.max(
-    2,
-    Math.floor(innerWidth / theme.axis.minTicksInterval),
-  );
+  const xTicksCount = getXTicksCount(theme, innerWidth, xScaleType);
 
   return (
     <RowChartView
