@@ -39,6 +39,8 @@ import {
   RowChartContainer,
   RowChartLegendLayout,
 } from "./RowChart.styled";
+import { ChartSettingsError, MinRowsError } from "metabase/visualizations/lib/errors";
+import LegendCaption from "metabase/visualizations/components/legend/LegendCaption";
 
 type $FIXME = any;
 
@@ -64,7 +66,7 @@ interface RowChartVisualizationProps extends Record<string, any> {
   onVisualizationClick: $FIXME;
 }
 
-const RowChartVisualizationInner = ({
+const RowChartVisualization = ({
   card,
   className,
   width,
@@ -82,6 +84,9 @@ const RowChartVisualizationInner = ({
   onHoverChange,
   onAddSeries,
   onRemoveSeries,
+  showTitle,
+  onChangeCardAndRun,
+  onEditSeries,
   ...props
 }: RowChartVisualizationProps) => {
   const { chartColumns, series, seriesColors } = useChartSeries(data, settings);
@@ -152,22 +157,57 @@ const RowChartVisualizationInner = ({
 
   // FIXME: settings axis are opposite
   const xLabel = settings["graph.y_axis.labels_enabled"]
-    ? settings["graph.x_axis.title_text"]
-    : undefined;
-  const yLabel = settings["graph.x_axis.labels_enabled"]
     ? settings["graph.y_axis.title_text"]
     : undefined;
+  const yLabel = settings["graph.x_axis.labels_enabled"]
+    ? settings["graph.x_axis.title_text"]
+    : undefined;
+
+
+  const hasTitle = showTitle && settings["card.title"];
+  const title = settings["card.title"] || card.name;
+  const description = settings["card.description"];
+  const canSelectTitle = !!onChangeCardAndRun;
+
+  const handleSelectTitle = () => {
+    if (onChangeCardAndRun) {
+      onChangeCardAndRun({
+        nextCard: card,
+        seriesIndex: 0,
+      });
+    }
+  };
+
+  const handleSelectSeries = (event: any, index: number) => {
+    const single = series[index];
+    const hasBreakout = 'breakout' in chartColumns;
+
+    if (onEditSeries && !hasBreakout) {
+      onEditSeries(event, index);
+    } 
+  };
 
   return (
     <RowVisualizationRoot className={className}>
+      {hasTitle && (
+        <LegendCaption
+          title={title}
+          description={description}
+          icon={headerIcon}
+          actionButtons={actionButtons}
+          onSelectTitle={canSelectTitle ? handleSelectTitle : undefined}
+        />
+      )}
       <RowChartLegendLayout
         hasLegend={series.length > 1}
-        labels={series.map(s => s.seriesKey)}
+        labels={series.map(s => s.seriesName)}
+        actionButtons={!hasTitle ? actionButtons : undefined}
         colors={Object.values(seriesColors)}
         hovered={hovered}
         onHoverChange={onHoverChange}
         isFullscreen={isFullscreen}
         isQueryBuilder={isQueryBuilder}
+        onSelectSeries={handleSelectSeries}
       >
         <RowChartRenderer
           className="flex-full"
@@ -193,20 +233,14 @@ const RowChartVisualizationInner = ({
   );
 };
 
-const RowChartVisualization = (props: any) => {
-  const { settings, data } = props;
-
-  if (!hasValidColumnsSelected(settings, data)) {
-    return null;
-  }
-
-  return <RowChartVisualizationInner {...props} />;
-};
-
 RowChartVisualization.uiName = t`Row`;
 RowChartVisualization.identifier = "row";
 RowChartVisualization.iconName = "horizontal_bar";
 RowChartVisualization.noun = t`row chart`;
+
+RowChartVisualization.noHeader = true;
+RowChartVisualization.supportsSeries = true;
+RowChartVisualization.minSize = { width: 4, height: 3 };
 
 const stackingSettings = {
   "stackable.stack_type": {
@@ -290,5 +324,53 @@ RowChartVisualization.transformSeries = (originalMultipleSeries: any) => {
       return { card: seriesCard, data };
     });
 };
+
+RowChartVisualization.checkRenderable = (series: $FIXME, settings: VisualizationSettings) => {
+  if (!hasValidColumnsSelected(settings, series[0].data)) {
+    throw new MinRowsError(1, 0);
+  }
+
+  const singleSeriesHasNoRows = ({ data: { cols, rows } }: $FIXME) => rows.length < 1;
+  if (_.every(series, singleSeriesHasNoRows)) {
+    throw new MinRowsError(1, 0);
+  }
+
+  const dimensions = (settings["graph.dimensions"] || []).filter(
+    name => name,
+  );
+  const metrics = (settings["graph.metrics"] || []).filter(name => name);
+  if (dimensions.length < 1 || metrics.length < 1) {
+    throw new ChartSettingsError(
+      t`Which fields do you want to use for the X and Y axes?`,
+      { section: t`Data` },
+      t`Choose fields`,
+    );
+  }
+  const seriesOrder = (settings["graph.series_order"] || []).filter(
+    series => series.enabled,
+  );
+  if (dimensions.length > 1 && seriesOrder.length === 0) {
+    throw new ChartSettingsError(t`No breakouts are enabled`, {
+      section: t`Data`,
+    });
+  }
+}
+
+RowChartVisualization. placeholderSeries = [
+  {
+    card: {
+      display: "row",
+      visualization_settings: {},
+      dataset_query: { type: "null" },
+    },
+    data: {
+      rows: _.range(0, 11).map(i => [i, i]),
+      cols: [
+        { name: "x", base_type: "type/Integer" },
+        { name: "y", base_type: "type/Integer" },
+      ],
+    },
+  },
+];
 
 export default RowChartVisualization;

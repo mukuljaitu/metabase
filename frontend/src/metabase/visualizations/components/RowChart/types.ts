@@ -49,6 +49,7 @@ export type SeriesOrder = string[];
 
 export type Series<TDatum, TSeriesInfo = unknown> = {
   seriesKey: string;
+  seriesName: string;
   xAccessor: (datum: TDatum) => XValue;
   yAccessor: (datum: TDatum) => yValue;
   seriesInfo?: TSeriesInfo;
