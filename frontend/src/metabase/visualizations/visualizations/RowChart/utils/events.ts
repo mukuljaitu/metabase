@@ -6,11 +6,59 @@ import {
 import {
   GroupedDataset,
   GroupedDatum,
+  MetricDatum,
   Series,
   SeriesInfo,
 } from "metabase/visualizations/components/RowChart/types";
-
 import { ChartColumns } from "../../../lib/graph/columns";
+
+const getMetricColumnData = (
+  columns: DatasetColumn[],
+  metricDatum: MetricDatum,
+) => {
+  return Object.entries(metricDatum).map(([columnName, value]) => {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const col = columns.find(column => column.name === columnName)!;
+
+    return {
+      key: col.display_name,
+      value,
+      col,
+    };
+  });
+};
+
+const getColumnsData = (
+  chartColumns: ChartColumns,
+  series: Series<GroupedDatum, unknown>,
+  datum: GroupedDatum,
+  datasetColumns: DatasetColumn[],
+) => {
+  const data = [
+    {
+      key: chartColumns.dimension.column.display_name,
+      value: datum.dimensionValue,
+      col: chartColumns.dimension.column,
+    },
+  ];
+
+  let metricDatum: MetricDatum;
+
+  if ("breakout" in chartColumns && datum.breakout) {
+    data.push({
+      key: chartColumns.breakout.column.display_name,
+      value: series.seriesKey,
+      col: chartColumns.breakout.column,
+    });
+
+    metricDatum = datum.breakout[series.seriesKey];
+  } else {
+    metricDatum = datum.metrics;
+  }
+
+  data.push(...getMetricColumnData(datasetColumns, metricDatum));
+  return data;
+};
 
 export const getClickData = (
   seriesIndex: number,
@@ -19,12 +67,19 @@ export const getClickData = (
   groupedData: GroupedDataset,
   visualizationSettings: VisualizationSettings,
   chartColumns: ChartColumns,
+  datasetColumns: DatasetColumn[],
 ) => {
-  const clickedSeries = series[seriesIndex];
-  const datum = groupedData[datumIndex];
+  const currentSeries = series[seriesIndex];
+  const currentDatum = groupedData[datumIndex];
+  const data = getColumnsData(
+    chartColumns,
+    currentSeries,
+    currentDatum,
+    datasetColumns,
+  );
 
-  const xValue = clickedSeries.xAccessor(datum);
-  const yValue = clickedSeries.yAccessor(datum);
+  const xValue = currentSeries.xAccessor(currentDatum);
+  const yValue = currentSeries.yAccessor(currentDatum);
 
   const dimensions: { column: DatasetColumn; value?: RowValue }[] = [
     {
@@ -36,14 +91,15 @@ export const getClickData = (
   if ("breakout" in chartColumns) {
     dimensions.push({
       column: chartColumns.breakout.column,
-      value: clickedSeries.seriesInfo?.breakoutValue,
+      value: currentSeries.seriesInfo?.breakoutValue,
     });
   }
 
   return {
     value: xValue,
-    column: clickedSeries.seriesInfo?.metricColumn,
+    column: currentSeries.seriesInfo?.metricColumn,
     dimensions,
+    data,
     settings: visualizationSettings,
   };
 };
@@ -55,31 +111,16 @@ export const getHoverData = (
   groupedData: GroupedDataset,
   settings: VisualizationSettings,
   chartColumns: ChartColumns,
+  datasetColumns: DatasetColumn[],
 ) => {
   const currentSeries = series[seriesIndex];
   const currentDatum = groupedData[datumIndex];
-
-  const data = [
-    {
-      key: chartColumns.dimension.column.display_name,
-      value: currentDatum.dimensionValue,
-      col: chartColumns.dimension.column,
-    },
-  ];
-
-  if ("breakout" in chartColumns) {
-    data.push({
-      key: chartColumns.breakout.column.display_name,
-      value: currentSeries.seriesKey,
-      col: chartColumns.breakout.column,
-    });
-
-    data.push({
-      key: chartColumns.metric.column.display_name,
-      value: currentSeries.xAccessor(currentDatum),
-      col: chartColumns.metric.column,
-    });
-  }
+  const data = getColumnsData(
+    chartColumns,
+    currentSeries,
+    currentDatum,
+    datasetColumns,
+  );
 
   return {
     settings,

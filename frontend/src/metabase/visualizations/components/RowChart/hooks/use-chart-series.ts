@@ -3,10 +3,12 @@ import { DatasetData, VisualizationSettings } from "metabase-types/api";
 import { getChartColumns } from "metabase/visualizations/lib/graph/columns";
 import { getSeries } from "../utils/data";
 import { getSeriesColors } from "../utils/colors";
+import { ColumnValueFormatter } from "../types";
 
 export const useChartSeries = (
   data: DatasetData,
   settings: VisualizationSettings,
+  columnValueFormatter: ColumnValueFormatter,
 ) => {
   const chartColumns = useMemo(
     () => getChartColumns(data, settings),
@@ -25,8 +27,8 @@ export const useChartSeries = (
   }, [settings]);
 
   const series = useMemo(
-    () => getSeries(data, chartColumns, seriesOrder),
-    [chartColumns, data, seriesOrder],
+    () => getSeries(data, chartColumns, columnValueFormatter, seriesOrder),
+    [chartColumns, columnValueFormatter, data, seriesOrder],
   );
 
   const seriesColors = useMemo(

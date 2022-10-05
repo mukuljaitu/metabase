@@ -1,12 +1,14 @@
 import { t } from "ttag";
 import { DatasetData, RowValue, RowValues } from "metabase-types/api";
 
+import { isMetric } from "metabase/lib/schema_metadata";
 import {
   ChartColumns,
   ColumnDescriptor,
   getColumnDescriptors,
 } from "metabase/visualizations/lib/graph/columns";
 import {
+  ColumnValueFormatter,
   GroupedDataset,
   GroupedDatum,
   MetricDatum,
@@ -15,9 +17,6 @@ import {
   SeriesInfo,
   SeriesOrder,
 } from "../types";
-
-// FIXME: use import { isMetric } from "metabase/lib/schema_metadata" but make it work for the static viz
-const isMetric = (col: any) => col && col.source !== "breakout";
 
 const getMetricValue = (value: RowValue): MetricValue => {
   if (typeof value === "number") {
@@ -47,6 +46,7 @@ const groupDataByDimensions = (
   rows: RowValues[],
   chartColumns: ChartColumns,
   allMetrics: ColumnDescriptor[],
+  columnValueFormatter: ColumnValueFormatter,
 ): GroupedDataset => {
   const { dimension } = chartColumns;
 
@@ -68,7 +68,10 @@ const groupDataByDimensions = (
     datum.metrics = sumMetrics(rowMetrics, datum.metrics);
 
     if ("breakout" in chartColumns) {
-      const breakoutName = String(row[chartColumns.breakout.index]);
+      const breakoutName = columnValueFormatter(
+        row[chartColumns.breakout.index],
+        chartColumns.breakout.column,
+      );
 
       datum.breakout ??= {};
       datum.breakout = {
@@ -89,6 +92,7 @@ const groupDataByDimensions = (
 export const getGroupedDataset = (
   data: DatasetData,
   chartColumns: ChartColumns,
+  columnValueFormatter: ColumnValueFormatter,
 ): GroupedDataset => {
   const allMetricColumns = data.cols
     .filter(isMetric)
@@ -98,7 +102,12 @@ export const getGroupedDataset = (
     data.cols,
   );
 
-  return groupDataByDimensions(data.rows, chartColumns, allMetricDescriptors);
+  return groupDataByDimensions(
+    data.rows,
+    chartColumns,
+    allMetricDescriptors,
+    columnValueFormatter,
+  );
 };
 
 export const trimData = (
@@ -149,8 +158,15 @@ export const trimData = (
 const getBreakoutDistinctValues = (
   data: DatasetData,
   breakout: ColumnDescriptor,
+  columnValueFormatter: ColumnValueFormatter,
 ) => {
-  return Array.from(new Set(data.rows.map(row => row[breakout.index])));
+  return Array.from(
+    new Set(
+      data.rows.map(row =>
+        columnValueFormatter(row[breakout.index], breakout.column),
+      ),
+    ),
+  );
 };
 
 const getBreakoutSeries = (
@@ -179,7 +195,7 @@ const getMultipleMetricSeries = (
   dimension: ColumnDescriptor,
   metrics: ColumnDescriptor[],
 ): Series<GroupedDatum, SeriesInfo>[] => {
-  return metrics.map((metric) => {
+  return metrics.map(metric => {
     return {
       seriesKey: metric.column.name,
       seriesName: metric.column.display_name ?? metric.column.name,
@@ -196,6 +212,7 @@ const getMultipleMetricSeries = (
 export const getSeries = (
   data: DatasetData,
   chartColumns: ChartColumns,
+  columnValueFormatter: ColumnValueFormatter,
   seriesOrder?: SeriesOrder,
 ): Series<GroupedDatum, SeriesInfo>[] => {
   let series: Series<GroupedDatum, SeriesInfo>[];
@@ -204,6 +221,7 @@ export const getSeries = (
     const breakoutValues = getBreakoutDistinctValues(
       data,
       chartColumns.breakout,
+      columnValueFormatter,
     );
 
     series = getBreakoutSeries(
@@ -218,14 +236,15 @@ export const getSeries = (
     );
   }
 
-  if (seriesOrder) {
-    return seriesOrder
-      .map(
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        seriesKey => series.find(series => series.seriesKey === seriesKey)!,
-      )
-      .filter(Boolean);
-  }
+  // FIXME: wait for reordering to be fixed
+  // if (seriesOrder) {
+  //   return seriesOrder
+  //     .map(
+  //       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  //       seriesKey => series.find(series => series.seriesKey === seriesKey)!,
+  //     )
+  //     .filter(Boolean);
+  // }
 
   return series;
 };

@@ -8,12 +8,12 @@ export const getChartTheme: () => ChartTheme = () => {
       minTicksInterval: 60,
       ticks: {
         size: 12,
-        weight: 700,
+        weight: 900,
         color: color("bg-dark"),
       },
       label: {
         size: 14,
-        weight: 700,
+        weight: 900,
         color: color("bg-dark"),
       },
     },
@@ -26,7 +26,7 @@ export const getChartTheme: () => ChartTheme = () => {
       },
     },
     dataLabels: {
-      weight: 700,
+      weight: 900,
       color: color("text-dark"),
       size: 12,
     },

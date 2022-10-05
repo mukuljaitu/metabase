@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 
 import _ from "underscore";
+import type { NumberValue } from "d3-scale";
 
 import { TextMeasurer } from "metabase/visualizations/types/measure-text";
 import { RowChartView, RowChartViewProps } from "./RowChartView/RowChartView";
@@ -41,6 +42,7 @@ export interface RowChartProps<TDatum> {
   xLabel?: string;
 
   tickFormatters: ChartTicksFormatters;
+  labelsFormatter: (value: NumberValue) => string;
   measureText: TextMeasurer;
 
   hoveredData?: HoveredData | null;
@@ -69,6 +71,7 @@ export const RowChart = <TDatum,>({
   yLabel,
 
   tickFormatters,
+  labelsFormatter,
   measureText,
 
   hoveredData,
@@ -177,6 +180,7 @@ export const RowChart = <TDatum,>({
       hoveredData={hoveredData}
       yTickFormatter={yTickFormatter}
       xTickFormatter={xTickFormatter}
+      labelsFormatter={labelsFormatter}
       onClick={onClick}
       onHover={onHover}
       xTicksCount={xTicksCount}

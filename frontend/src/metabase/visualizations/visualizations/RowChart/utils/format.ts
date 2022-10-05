@@ -1,8 +1,26 @@
-import { RowValue, VisualizationSettings } from "metabase-types/api";
+import {
+  DatasetColumn,
+  RowValue,
+  VisualizationSettings,
+} from "metabase-types/api";
 import { ChartColumns } from "metabase/visualizations/lib/graph/columns";
 import { getStackingOffset } from "metabase/visualizations/lib/settings/stacking";
 import { formatValue } from "metabase/lib/formatting";
-import { ChartTicksFormatters } from "metabase/visualizations/components/RowChart/RowChartView/types/format";
+import {
+  ChartTicksFormatters,
+  ColumnValueFormatter,
+  ValueFormatter,
+} from "metabase/visualizations/components/RowChart/types";
+
+const getXValueMetricColumn = (
+  chartColumns: ChartColumns,
+  settings: VisualizationSettings,
+) => {
+  // For multi-metrics charts we use the first metic column settings for formatting
+  return "breakout" in chartColumns
+    ? chartColumns.metric
+    : chartColumns.metrics[0];
+};
 
 export const getFormatters = (
   chartColumns: ChartColumns,
@@ -17,9 +35,7 @@ export const getFormatters = (
     );
   };
 
-  // For multi-metrics charts we use the first metic column settings for formatting
-  const metricColumn =
-    "breakout" in chartColumns ? chartColumns.metric : chartColumns.metrics[0];
+  const metricColumn = getXValueMetricColumn(chartColumns, settings);
 
   const percentXTicksFormatter = (percent: any) =>
     String(
@@ -50,3 +66,26 @@ export const getFormatters = (
       : xTickFormatter,
   };
 };
+
+export const getLabelsFormatter = (
+  chartColumns: ChartColumns,
+  settings: VisualizationSettings,
+): ValueFormatter => {
+  const metricColumn = getXValueMetricColumn(chartColumns, settings);
+
+  const labelsFormatter = (value: any) =>
+    String(
+      formatValue(value, {
+        ...settings.column(metricColumn.column),
+        jsx: false,
+        compact: settings["graph.label_value_formatting"] === "compact",
+      }),
+    );
+
+  return labelsFormatter;
+};
+
+export const formatColumnValue: ColumnValueFormatter = (
+  value: any,
+  column: DatasetColumn,
+) => String(formatValue(value, { column }));

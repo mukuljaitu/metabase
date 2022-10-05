@@ -39,7 +39,7 @@ export const getScaleByType = (
       return scaleLog({
         range,
         domain,
-        base: 10,
+        base: 2,
       });
     default:
       return scaleLinear({

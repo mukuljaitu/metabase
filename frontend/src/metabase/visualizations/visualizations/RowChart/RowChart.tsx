@@ -22,7 +22,11 @@ import {
   getChartColumns,
   hasValidColumnsSelected,
 } from "metabase/visualizations/lib/graph/columns";
-import { getFormatters } from "metabase/visualizations/visualizations/RowChart/utils/format";
+import {
+  formatColumnValue,
+  getFormatters,
+  getLabelsFormatter,
+} from "metabase/visualizations/visualizations/RowChart/utils/format";
 import { measureText } from "metabase/lib/measure-text";
 import ExplicitSize from "metabase/components/ExplicitSize";
 import {
@@ -35,12 +39,15 @@ import { getChartTheme } from "metabase/visualizations/components/RowChart/utils
 import { getStackingOffset } from "metabase/visualizations/lib/settings/stacking";
 import { getComputedSettingsForSeries } from "metabase/visualizations/lib/settings/visualization";
 import {
+  ChartSettingsError,
+  MinRowsError,
+} from "metabase/visualizations/lib/errors";
+import LegendCaption from "metabase/visualizations/components/legend/LegendCaption";
+import {
   RowVisualizationRoot,
   RowChartContainer,
   RowChartLegendLayout,
 } from "./RowChart.styled";
-import { ChartSettingsError, MinRowsError } from "metabase/visualizations/lib/errors";
-import LegendCaption from "metabase/visualizations/components/legend/LegendCaption";
 
 type $FIXME = any;
 
@@ -89,10 +96,14 @@ const RowChartVisualization = ({
   onEditSeries,
   ...props
 }: RowChartVisualizationProps) => {
-  const { chartColumns, series, seriesColors } = useChartSeries(data, settings);
+  const { chartColumns, series, seriesColors } = useChartSeries(
+    data,
+    settings,
+    formatColumnValue,
+  );
 
   const groupedData = useMemo(
-    () => getGroupedDataset(data, chartColumns),
+    () => getGroupedDataset(data, chartColumns, formatColumnValue),
     [chartColumns, data],
   );
   const goal = useMemo(() => getChartGoal(settings), [settings]);
@@ -103,6 +114,11 @@ const RowChartVisualization = ({
 
   const tickFormatters = useMemo(
     () => getFormatters(chartColumns, settings),
+    [chartColumns, settings],
+  );
+
+  const labelsFormatter = useMemo(
+    () => getLabelsFormatter(chartColumns, settings),
     [chartColumns, settings],
   );
 
@@ -118,6 +134,7 @@ const RowChartVisualization = ({
       groupedData,
       settings,
       chartColumns,
+      data.cols,
     );
 
     onVisualizationClick({ ...clickData, element: event.target });
@@ -139,6 +156,7 @@ const RowChartVisualization = ({
       groupedData,
       settings,
       chartColumns,
+      data.cols,
     );
     onHoverChange({
       ...hoverData,
@@ -156,13 +174,16 @@ const RowChartVisualization = ({
       : null;
 
   // FIXME: settings axis are opposite
-  const xLabel = settings["graph.y_axis.labels_enabled"]
-    ? settings["graph.y_axis.title_text"]
-    : undefined;
-  const yLabel = settings["graph.x_axis.labels_enabled"]
-    ? settings["graph.x_axis.title_text"]
-    : undefined;
-
+  const xLabel =
+    settings["graph.y_axis.labels_enabled"] &&
+    (settings["graph.y_axis.title_text"]?.length ?? 0) > 0
+      ? settings["graph.y_axis.title_text"]
+      : undefined;
+  const yLabel =
+    settings["graph.x_axis.labels_enabled"] &&
+    (settings["graph.x_axis.title_text"]?.length ?? 0) > 0
+      ? settings["graph.x_axis.title_text"]
+      : undefined;
 
   const hasTitle = showTitle && settings["card.title"];
   const title = settings["card.title"] || card.name;
@@ -180,12 +201,18 @@ const RowChartVisualization = ({
 
   const handleSelectSeries = (event: any, index: number) => {
     const single = series[index];
-    const hasBreakout = 'breakout' in chartColumns;
+    const hasBreakout = "breakout" in chartColumns;
 
     if (onEditSeries && !hasBreakout) {
       onEditSeries(event, index);
-    } 
+    }
   };
+
+  const seriesSettings =
+    settings.series && rawSeries.map((single: any) => settings.series(single));
+  const labels = seriesSettings
+    ? seriesSettings.map((s: any) => s.title)
+    : series.map(single => single.seriesName);
 
   return (
     <RowVisualizationRoot className={className}>
@@ -200,7 +227,8 @@ const RowChartVisualization = ({
       )}
       <RowChartLegendLayout
         hasLegend={series.length > 1}
-        labels={series.map(s => s.seriesName)}
+        labels={labels}
+        // labels={series.map(s => s.seriesName)}
         actionButtons={!hasTitle ? actionButtons : undefined}
         colors={Object.values(seriesColors)}
         hovered={hovered}
@@ -220,6 +248,7 @@ const RowChartVisualization = ({
           stackingOffset={stackingOffset}
           shouldShowDataLabels={shouldShowDataLabels}
           tickFormatters={tickFormatters}
+          labelsFormatter={labelsFormatter}
           measureText={measureText}
           hoveredData={hoverData}
           onClick={handleClick}
@@ -268,6 +297,23 @@ RowChartVisualization.settings = {
       vizSettings["stackable.stack_type"] === "normalized",
     default: false,
   },
+  "graph.label_value_formatting": {
+    section: t`Display`,
+    title: t`Auto formatting`,
+    widget: "segmentedControl",
+    getHidden: (series: any, vizSettings: any) =>
+      vizSettings["graph.show_values"] !== true ||
+      vizSettings["stackable.stack_type"] === "normalized",
+    props: {
+      options: [
+        { name: t`Auto`, value: "auto" },
+        { name: t`Compact`, value: "compact" },
+        { name: t`Full`, value: "full" },
+      ],
+    },
+    default: "auto",
+    readDependencies: ["graph.show_values"],
+  },
   ...GRAPH_GOAL_SETTINGS,
   ...GRAPH_DATA_SETTINGS,
   ...GRAPH_AXIS_SETTINGS,
@@ -312,7 +358,7 @@ RowChartVisualization.transformSeries = (originalMultipleSeries: any) => {
 
   const chartColumns = getChartColumns(data, settings);
 
-  return getSeries(data, chartColumns)
+  const computedSeries = getSeries(data, chartColumns, formatColumnValue)
     .map(s => s.seriesKey)
     .map(seriesKey => {
       const seriesCard = {
@@ -323,21 +369,25 @@ RowChartVisualization.transformSeries = (originalMultipleSeries: any) => {
       };
       return { card: seriesCard, data };
     });
+
+  return computedSeries.length > 0 ? computedSeries : originalMultipleSeries;
 };
 
-RowChartVisualization.checkRenderable = (series: $FIXME, settings: VisualizationSettings) => {
+RowChartVisualization.checkRenderable = (
+  series: $FIXME,
+  settings: VisualizationSettings,
+) => {
   if (!hasValidColumnsSelected(settings, series[0].data)) {
     throw new MinRowsError(1, 0);
   }
 
-  const singleSeriesHasNoRows = ({ data: { cols, rows } }: $FIXME) => rows.length < 1;
+  const singleSeriesHasNoRows = ({ data: { cols, rows } }: $FIXME) =>
+    rows.length < 1;
   if (_.every(series, singleSeriesHasNoRows)) {
     throw new MinRowsError(1, 0);
   }
 
-  const dimensions = (settings["graph.dimensions"] || []).filter(
-    name => name,
-  );
+  const dimensions = (settings["graph.dimensions"] || []).filter(Boolean);
   const metrics = (settings["graph.metrics"] || []).filter(name => name);
   if (dimensions.length < 1 || metrics.length < 1) {
     throw new ChartSettingsError(
@@ -354,9 +404,9 @@ RowChartVisualization.checkRenderable = (series: $FIXME, settings: Visualization
       section: t`Data`,
     });
   }
-}
+};
 
-RowChartVisualization. placeholderSeries = [
+RowChartVisualization.placeholderSeries = [
   {
     card: {
       display: "row",

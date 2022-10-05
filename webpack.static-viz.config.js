@@ -1,5 +1,6 @@
 const SRC_PATH = __dirname + "/frontend/src/metabase";
 const BUILD_PATH = __dirname + "/resources/frontend_client";
+const CLJS_SRC_PATH = __dirname + "/frontend/src/cljs";
 
 const BABEL_CONFIG = {
   cacheDirectory: process.env.BABEL_DISABLE_CACHE ? null : ".babel_cache",
@@ -32,7 +33,7 @@ module.exports = {
     rules: [
       {
         test: /\.(tsx?|jsx?)$/,
-        exclude: /node_modules/,
+        exclude: /node_modules|cljs/,
         use: [{ loader: "babel-loader", options: BABEL_CONFIG }],
       },
     ],
@@ -41,6 +42,7 @@ module.exports = {
     extensions: [".webpack.js", ".web.js", ".js", ".jsx", ".ts", ".tsx"],
     alias: {
       metabase: SRC_PATH,
+      cljs: CLJS_SRC_PATH,
     },
   },
 };

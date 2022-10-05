@@ -1,10 +1,15 @@
 import { DatasetColumn, RowValue } from "metabase-types/api";
 
-export type TickFormatter = (value: any) => string;
+export type ValueFormatter = (value: any) => string;
+
+export type ColumnValueFormatter = (
+  value: any,
+  column: DatasetColumn,
+) => string;
 
 export type ChartTicksFormatters = {
-  xTickFormatter: TickFormatter;
-  yTickFormatter: TickFormatter;
+  xTickFormatter: ValueFormatter;
+  yTickFormatter: ValueFormatter;
 };
 
 export type Margin = {

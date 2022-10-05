@@ -26,6 +26,7 @@ export interface RowChartViewProps {
     seriesIndex: number,
     datumIndex: number,
   ) => void;
+  labelsFormatter: (value: NumberValue) => string;
   yTickFormatter: (value: string | number) => string;
   xTickFormatter: (value: NumberValue) => string;
   goal: ChartGoal | null;
@@ -50,6 +51,7 @@ export const RowChartView = ({
   theme,
   margin,
   hoveredData,
+  labelsFormatter,
   yTickFormatter,
   xTickFormatter,
   onHover,
@@ -118,7 +120,7 @@ export const RowChartView = ({
             return (
               <>
                 <Bar
-                  style={{ transition: "opacity 300ms" }}
+                  style={{ transition: "opacity 300ms", cursor: "pointer" }}
                   key={`${seriesIndex}:${datumIndex}`}
                   x={x}
                   y={y}
@@ -142,7 +144,7 @@ export const RowChartView = ({
                     y={y + height / 2}
                     verticalAnchor="middle"
                   >
-                    {value}
+                    {labelsFormatter(value)}
                   </Text>
                 )}
               </>
@@ -190,6 +192,7 @@ export const RowChartView = ({
             fontSize: theme.axis.label.size,
             fontWeight: theme.axis.label.weight,
             verticalAnchor: "end",
+            textAnchor: "middle",
           }}
           hideTicks
           numTicks={xTicksCount}
