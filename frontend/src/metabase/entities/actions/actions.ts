@@ -119,9 +119,10 @@ const Actions = createEntity({
     list: async (params: any) => {
       const actions = await ActionsApi.list(params);
 
-      return actions.map((action: ModelAction | WritebackAction) => ({
+      return actions.map((action: WritebackAction) => ({
         ...action,
-        id: action.id ?? `implicit-${action.slug}`,
+        name: action.name ?? action.slug,
+        id: action.id ?? `implicit-${action.slug}-${action.model_id}`,
       }));
     },
   },

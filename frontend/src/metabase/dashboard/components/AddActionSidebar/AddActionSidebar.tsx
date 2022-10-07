@@ -1,30 +1,38 @@
-import React from "react";
+import React, { useState } from "react";
 import _ from "underscore";
 import { t } from "ttag";
 import { connect } from "react-redux";
 
-import Sidebar from "metabase/dashboard/components/Sidebar";
-import ActionPicker from "metabase/containers/ActionPicker";
-
-import { addActionToDashboard } from "metabase/dashboard/actions";
-
-import type { ActionDisplayType, WritebackAction } from "metabase-types/api";
+import type {
+  ActionDisplayType,
+  Dashboard,
+  WritebackAction,
+  Card,
+  CustomDestinationClickBehavior,
+} from "metabase-types/api";
 import type { State } from "metabase-types/store";
 
-import { Heading, SidebarContent } from "./AddActionSidebar.styled";
+import Search from "metabase/entities/search";
 
-const mapStateToProps = (state: State, props: any) => props;
+import Sidebar from "metabase/dashboard/components/Sidebar";
+import ActionPicker from "metabase/containers/ActionPicker";
+import {
+  addActionToDashboard,
+  addLinkToDashboard,
+  closeSidebar,
+} from "metabase/dashboard/actions";
+
+import { ButtonOptions } from "./ButtonOptions";
+import { Heading, SidebarContent } from "./AddActionSidebar.styled";
 
 const mapDispatchToProps = {
   addAction: addActionToDashboard,
+  addLink: addLinkToDashboard,
+  closeSidebar,
 };
 
-function AddActionSidebarFn({
-  dashId,
-  addAction,
-  displayType,
-}: {
-  dashId: number;
+interface ActionSidebarProps {
+  dashboard: Dashboard;
   addAction: ({
     dashId,
     action,
@@ -34,11 +42,32 @@ function AddActionSidebarFn({
     action: WritebackAction;
     displayType: ActionDisplayType;
   }) => void;
+  addLink: ({
+    dashId,
+    clickBehavior,
+  }: {
+    dashId: number;
+    clickBehavior: CustomDestinationClickBehavior;
+  }) => void;
+  closeSidebar: () => void;
+  models: Card[];
   displayType: ActionDisplayType;
-}) {
+}
+
+function AddActionSidebarFn({
+  dashboard,
+  addAction,
+  addLink,
+  closeSidebar,
+  models,
+  displayType,
+}: ActionSidebarProps) {
   const handleActionSelected = async (action: WritebackAction) => {
-    await addAction({ dashId, action, displayType });
+    await addAction({ dashId: dashboard.id, action, displayType });
   };
+  const modelIds = models?.map(model => model.id) ?? [];
+  const showButtonOptions = displayType === "button";
+  const showActionPicker = displayType === "form";
 
   return (
     <Sidebar>
@@ -48,13 +77,37 @@ function AddActionSidebarFn({
             displayType === "button" ? t`button` : t`form`
           } to the page`}
         </Heading>
-        <ActionPicker onChange={handleActionSelected} />
+
+        {showActionPicker && (
+          <ActionPicker modelIds={modelIds} onClick={handleActionSelected} />
+        )}
+
+        {showButtonOptions && (
+          <ButtonOptions
+            addLink={addLink}
+            closeSidebar={closeSidebar}
+            dashboard={dashboard}
+            ActionPicker={
+              <ActionPicker
+                modelIds={modelIds}
+                onClick={handleActionSelected}
+              />
+            }
+          />
+        )}
       </SidebarContent>
     </Sidebar>
   );
 }
 
-export const AddActionSidebar = connect(
-  mapStateToProps,
-  mapDispatchToProps,
+export const AddActionSidebar = _.compose(
+  Search.loadList({
+    query: (_state: State, props: any) => ({
+      models: ["dataset"],
+      collection: props.dashboard.collection_id,
+    }),
+    loadingAndErrorWrapper: false,
+    listName: "models",
+  }),
+  connect(null, mapDispatchToProps),
 )(AddActionSidebarFn);

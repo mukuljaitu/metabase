@@ -1,5 +1,6 @@
 import styled from "@emotion/styled";
 import { color } from "metabase/lib/colors";
+import { space } from "metabase/styled-components/theme";
 
 export const Heading = styled.h4`
   color: ${color("text-dark")};
@@ -14,14 +15,7 @@ export const SidebarContent = styled.div`
   padding-right: 32px;
 `;
 
-export const SidebarContentBordered = styled(SidebarContent)`
-  padding-bottom: 1rem;
-  border-bottom: 1px solid ${color("border")};
-`;
-
-export const SidebarHeader = styled.div`
-  border-bottom: 1px solid ${color("border")};
-  padding-left: 32px;
-  padding-right: 36px;
-  margin-bottom: 16px;
+export const ClickBehaviorPickerText = styled.div`
+  color: ${color("text-medium")};
+  margin-bottom: ${space(2)};
 `;

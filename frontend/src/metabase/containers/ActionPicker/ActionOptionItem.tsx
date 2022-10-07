@@ -21,18 +21,8 @@ export default function ActionOptionItem({
   onClick,
 }: ActionOptionProps) {
   return (
-    <ActionOptionListItem
-      onClick={onClick}
-      isSelected={isSelected}
-      hasDescription={!!description}
-    >
-      <Icon name="insight" size={22} />
-      <div>
-        <ActionOptionTitle>{name}</ActionOptionTitle>
-        {!!description && (
-          <ActionOptionDescription>{description}</ActionOptionDescription>
-        )}
-      </div>
-    </ActionOptionListItem>
+    <div className="text-brand cursor-pointer" onClick={onClick}>
+      {name}
+    </div>
   );
 }

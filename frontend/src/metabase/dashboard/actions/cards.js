@@ -127,7 +127,7 @@ export const addActionToDashboard =
   };
 
 export const addLinkToDashboard =
-  async ({ dashId, link }) =>
+  async ({ dashId, clickBehavior }) =>
   dispatch => {
     const virtualActionsCard = {
       ...createCard(),
@@ -140,12 +140,9 @@ export const addLinkToDashboard =
       size_y: 1,
       visualization_settings: {
         virtual_card: virtualActionsCard,
-        "button.label": link.name ?? t`Link`,
-        click_behavior: {
-          type: "link",
-          linkType: link.type ?? "page",
-          targetId: link.target,
-        },
+        "button.label": t`Link`,
+        click_behavior: clickBehavior,
+        actionDisplayType: "button",
       },
     };
     dispatch(

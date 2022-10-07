@@ -20,7 +20,6 @@ DashboardSidebars.propTypes = {
   addCardToDashboard: PropTypes.func.isRequired,
   editingParameter: PropTypes.object,
   isEditingParameter: PropTypes.bool.isRequired,
-  showAddQuestionSidebar: PropTypes.bool.isRequired,
   clickBehaviorSidebarDashcard: PropTypes.object, // only defined when click-behavior sidebar is open
   onReplaceAllDashCardVisualizationSettings: PropTypes.func.isRequired,
   onUpdateDashCardVisualizationSettings: PropTypes.func.isRequired,
@@ -93,9 +92,15 @@ export function DashboardSidebars({
         />
       );
     case SIDEBAR_NAME.addActionForm:
-      return <AddActionSidebar dashId={dashboard.id} displayType="form" />;
     case SIDEBAR_NAME.addActionButton:
-      return <AddActionSidebar dashId={dashboard.id} displayType="button" />;
+      return (
+        <AddActionSidebar
+          dashboard={dashboard}
+          displayType={
+            sidebar.name === SIDEBAR_NAME.addActionForm ? "form" : "button"
+          }
+        />
+      );
     case SIDEBAR_NAME.clickBehavior:
       return (
         <ClickBehaviorSidebar

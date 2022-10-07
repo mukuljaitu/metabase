@@ -32,10 +32,3 @@ export const ActionDescription = styled.span<{ isSelected?: boolean }>`
 export const ClickMappingsContainer = styled.div`
   margin-top: 1rem;
 `;
-
-export const ActionPickerWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-  max-height: calc(100vh - 30rem);
-  overflow-y: auto;
-`;
