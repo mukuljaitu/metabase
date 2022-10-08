@@ -26,4 +26,4 @@ module.exports = {
   }),
 };
 
-const isCSSRule = rule => rule.test.toString() === "/\\.css$/";
+const isCSSRule = rule => rule.test.toString() === "/\\\.css$/";
